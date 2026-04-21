@@ -2,27 +2,169 @@
 <html>
 <head>
     <title>Life Dashboard</title>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <link rel="stylesheet" href="/static/css/style.css">
+
+    <style>
+        body {
+            font-family: 'Segoe UI';
+            background: linear-gradient(135deg, #1e1e2f, #121212);
+            color: white;
+        }
+
+        .container {
+            width: 600px;
+            margin: auto;
+            margin-top: 30px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        form {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        input, select, button {
+            padding: 10px;
+        }
+
+        button {
+            background: #00adb5;
+            border: none;
+            color: white;
+        }
+
+        .task {
+            background: #2a2a3d;
+            border-radius: 10px;
+            padding: 10px;
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .done {
+            text-decoration: line-through;
+            color: gray;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            background: #222;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        canvas {
+            margin-top: 20px;
+            background: #1e1e2f;
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        a {
+            color: white;
+            margin-left: 10px;
+            text-decoration: none;
+        }
+    </style>
 </head>
+
 <body>
 
-<h1>Life Dashboard</h1>
+<div class="container">
 
-<form method="POST" action="/add/">
-    {% csrf_token %}
-    <input type="text" name="title" placeholder="Enter task" required>
-    <button type="submit">Add Task</button>
-</form>
+    <h1>🧠 Life Dashboard</h1>
 
-<hr>
+    <!-- STATS -->
+    <div class="stats">
+        <p>Total: {{ total }}</p>
+        <p>Completed: {{ completed }}</p>
+        <p>Pending: {{ pending }}</p>
+    </div>
 
-<h2>Tasks</h2>
+    <!-- ADD TASK -->
+    <form method="POST" action="/add/">
+        {% csrf_token %}
+        <input type="text" name="title" placeholder="Task" required>
 
-{% for task in tasks %}
-    <p>{{ task.title }}</p>
-{% empty %}
-    <p>No tasks yet</p>
-{% endfor %}
+        <select name="category">
+            <option>Study</option>
+            <option>Workout</option>
+            <option>Money</option>
+        </select>
+
+        <input type="date" name="due_date">
+
+        <button type="submit">Add</button>
+    </form>
+
+    <!-- TASK LIST -->
+    {% for task in tasks %}
+        <div class="task">
+            <div>
+                <span class="{% if task.completed %}done{% endif %}">
+                    {{ task.title }}
+                </span>
+                <br>
+                <small>{{ task.category }} | {{ task.due_date }}</small>
+            </div>
+
+            <div>
+                <a href="/complete/{{ task.id }}/">✔</a>
+                <a href="/delete/{{ task.id }}/">❌</a>
+            </div>
+        </div>
+    {% empty %}
+        <p>No tasks yet</p>
+    {% endfor %}
+
+    <!-- CHARTS -->
+    <h2>📊 Analytics</h2>
+
+    <canvas id="taskChart"></canvas>
+    <canvas id="categoryChart"></canvas>
+
+</div>
+
+<!-- JAVASCRIPT -->
+<script>
+    // Task Chart
+    const taskChart = new Chart(document.getElementById('taskChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Completed', 'Pending'],
+            datasets: [{
+                data: [{{ completed }}, {{ pending }}],
+                backgroundColor: ['#00ff99', '#ff4d4d']
+            }]
+        }
+    });
+
+    // Category Chart
+    const categoryData = JSON.parse('{{ category_data|escapejs }}');
+
+    const categoryChart = new Chart(document.getElementById('categoryChart'), {
+        type: 'bar',
+        data: {
+            labels: Object.keys(categoryData),
+            datasets: [{
+                label: 'Tasks by Category',
+                data: Object.values(categoryData),
+                backgroundColor: '#00adb5'
+            }]
+        }
+    });
+</script>
 
 </body>
 </html>
