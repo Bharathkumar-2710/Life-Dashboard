@@ -1,5 +1,7 @@
 import json
-from django.core.serializers.json import DjangoJSONEncoder
+from django.shortcuts import render, redirect
+from .models import Task
+from django.contrib.auth.decorators import login_required
 
 @login_required
 def home(request):
