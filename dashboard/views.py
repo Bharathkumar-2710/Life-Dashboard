@@ -1,7 +1,9 @@
-import json
 from django.shortcuts import render, redirect
 from .models import Task
 from django.contrib.auth.decorators import login_required
+import json
+from django.core.serializers.json import DjangoJSONEncoder
+
 
 @login_required
 def home(request):
@@ -16,12 +18,43 @@ def home(request):
     for task in tasks:
         categories[task.category] = categories.get(task.category, 0) + 1
 
-    context = {
+    return render(request, 'home.html', {
         'tasks': tasks,
         'total': total,
         'completed': completed,
         'pending': pending,
         'category_data': json.dumps(categories, cls=DjangoJSONEncoder)
-    }
+    })
 
-    return render(request, 'home.html', context)
+
+# ✅ THIS WAS MISSING
+@login_required
+def add_task(request):
+    if request.method == "POST":
+        title = request.POST.get('title')
+        category = request.POST.get('category')
+        due_date = request.POST.get('due_date')
+
+        if title:
+            Task.objects.create(
+                title=title,
+                category=category,
+                due_date=due_date,
+                user=request.user
+            )
+    return redirect('/')
+
+
+@login_required
+def delete_task(request, id):
+    task = Task.objects.get(id=id)
+    task.delete()
+    return redirect('/')
+
+
+@login_required
+def toggle_complete(request, id):
+    task = Task.objects.get(id=id)
+    task.completed = not task.completed
+    task.save()
+    return redirect('/')
