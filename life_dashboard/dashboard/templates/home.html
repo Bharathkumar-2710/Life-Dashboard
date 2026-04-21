@@ -2,12 +2,12 @@
 <html>
 <head>
     <title>Life Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 
 <h1>Life Dashboard</h1>
 
-<!-- ADD TASK -->
 <form method="POST" action="/add/">
     {% csrf_token %}
     <input type="text" name="title" placeholder="Enter task" required>
