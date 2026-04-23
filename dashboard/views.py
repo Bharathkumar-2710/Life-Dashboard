@@ -62,7 +62,6 @@ def toggle_complete(request, id):
     return redirect('home')
 
 
-# 🔥 REGISTER VIEW (ADD THIS AT END)
 def register(request):
     if request.method == "POST":
         username = request.POST["username"]
