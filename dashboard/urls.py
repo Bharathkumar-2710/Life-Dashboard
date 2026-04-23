@@ -1,3 +1,6 @@
+from django.urls import path
+from . import views
+
 urlpatterns = [
     path('', views.landing, name='landing'),   # first page
     path('home/', views.home, name='home'),    # dashboard (after login)
