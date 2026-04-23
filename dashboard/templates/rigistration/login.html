@@ -1,17 +1,81 @@
+{% load static %}
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Login</title>
+    <title>Login | Life Dashboard</title>
+
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+    <style>
+        body {
+            font-family: 'Segoe UI';
+            background: linear-gradient(135deg, #1e1e2f, #121212);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .login-box {
+            background: #2a2a3d;
+            padding: 30px;
+            border-radius: 10px;
+            width: 300px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #00adb5;
+            border: none;
+            color: white;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background: #00cfc8;
+            cursor: pointer;
+        }
+
+        .error {
+            color: #ff4d4d;
+            text-align: center;
+        }
+    </style>
 </head>
+
 <body>
 
-<h2>Login</h2>
+<div class="login-box">
+    <h2>🔐 Login</h2>
 
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Login</button>
-</form>
+    {% if form.errors %}
+        <p class="error">Invalid username or password</p>
+    {% endif %}
+
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.username }}
+        {{ form.password }}
+
+        <button type="submit">Login</button>
+    </form>
+</div>
 
 </body>
 </html>

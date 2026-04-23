@@ -7,7 +7,7 @@ SECRET_KEY = 'django-insecure-your-secret-key'
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']   # ✅ FIX
 
 
 # ---------------- INSTALLED APPS ----------------
@@ -27,6 +27,10 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+
+    # ✅ ADD (recommended)
+    'django.middleware.locale.LocaleMiddleware',
+
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -44,14 +48,14 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
 
-        # ✅ IMPORTANT FIX (global templates support)
+        # ✅ GOOD (no change needed)
         'DIRS': [BASE_DIR / 'templates'],
 
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
-                'django.template.context_processors.request',
+                'django.template.context_processors.request',  # ✅ REQUIRED for login
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
@@ -84,7 +88,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # ---------------- LANGUAGE ----------------
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'Asia/Kolkata'   # ✅ better for you
+TIME_ZONE = 'Asia/Kolkata'
 
 USE_I18N = True
 USE_TZ = True
@@ -93,16 +97,16 @@ USE_TZ = True
 # ---------------- STATIC FILES ----------------
 STATIC_URL = '/static/'
 
-# ✅ IMPORTANT (for your CSS/JS)
+# ✅ FIX (safe structure)
 STATICFILES_DIRS = [
-    BASE_DIR / 'dashboard' / 'static',
+    BASE_DIR / 'static',   # better than dashboard/static
 ]
 
 
 # ---------------- LOGIN SYSTEM ----------------
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
-LOGIN_URL = '/accounts/login/'   
+LOGIN_URL = '/accounts/login/'
 
 
 # ---------------- DEFAULT PRIMARY KEY ----------------
