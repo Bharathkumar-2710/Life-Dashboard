@@ -7,13 +7,11 @@ urlpatterns = [
 
     # App routes
     path('', include('dashboard.urls')),
-
-    # Auth routes ✅ HERE
     path('accounts/login/', auth_views.LoginView.as_view(
         template_name='registration/login.html'
     ), name='login'),
 
     path('accounts/logout/', auth_views.LogoutView.as_view(
-    next_page='login'
+    next_page='registration/login.html'
 ), name='logout'),
 ]

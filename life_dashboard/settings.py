@@ -7,7 +7,7 @@ SECRET_KEY = 'django-insecure-your-secret-key'
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']   # ✅ FIX
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']  
 
 
 # ---------------- INSTALLED APPS ----------------
@@ -27,10 +27,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-
-    # ✅ ADD (recommended)
     'django.middleware.locale.LocaleMiddleware',
-
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -94,7 +91,6 @@ USE_TZ = True
 # ---------------- STATIC FILES ----------------
 STATIC_URL = '/static/'
 
-# ✅ FIX (safe structure)
 STATICFILES_DIRS = [
     BASE_DIR / 'static',   # better than dashboard/static
 ]

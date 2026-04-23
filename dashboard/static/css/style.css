@@ -1,0 +1,51 @@
+body {
+    font-family: Arial;
+    background: #121212;
+    color: white;
+}
+
+.container {
+    width: 400px;
+    margin: auto;
+    margin-top: 50px;
+}
+
+h1 {
+    text-align: center;
+}
+
+form {
+    display: flex;
+    gap: 10px;
+}
+
+input {
+    flex: 1;
+    padding: 10px;
+}
+
+button {
+    padding: 10px;
+    background: #00adb5;
+    border: none;
+    color: white;
+}
+
+.task {
+    display: flex;
+    justify-content: space-between;
+    background: #1e1e1e;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 5px;
+}
+
+.done {
+    text-decoration: line-through;
+    color: gray;
+}
+
+.actions a {
+    margin-left: 10px;
+    text-decoration: none;
+}
