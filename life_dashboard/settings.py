@@ -47,15 +47,12 @@ ROOT_URLCONF = 'life_dashboard.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-
-        # ✅ GOOD (no change needed)
-        'DIRS': [BASE_DIR / 'templates'],
-
+        'DIRS': [BASE_DIR / 'templates'],  # ✅ MUST be this
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
-                'django.template.context_processors.request',  # ✅ REQUIRED for login
+                'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
