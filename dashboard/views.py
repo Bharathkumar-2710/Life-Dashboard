@@ -1,6 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Task
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.contrib import messages
 import json
 from django.core.serializers.json import DjangoJSONEncoder
 
@@ -41,19 +43,36 @@ def add_task(request):
                 due_date=due_date,
                 user=request.user
             )
-    return redirect('home')   # ✅ better than '/'
+    return redirect('home')
 
 
 @login_required
 def delete_task(request, id):
-    task = get_object_or_404(Task, id=id, user=request.user)  # ✅ SECURITY FIX
+    task = get_object_or_404(Task, id=id, user=request.user)
     task.delete()
     return redirect('home')
 
 
 @login_required
 def toggle_complete(request, id):
-    task = get_object_or_404(Task, id=id, user=request.user)  # ✅ SECURITY FIX
+    task = get_object_or_404(Task, id=id, user=request.user)
     task.completed = not task.completed
     task.save()
     return redirect('home')
+
+
+# 🔥 REGISTER VIEW (ADD THIS AT END)
+def register(request):
+    if request.method == "POST":
+        username = request.POST["username"]
+        password = request.POST["password"]
+
+        if User.objects.filter(username=username).exists():
+            messages.error(request, "Username already exists")
+            return redirect("register")
+
+        User.objects.create_user(username=username, password=password)
+        messages.success(request, "Account created! Login now.")
+        return redirect("login")
+
+    return render(request, "registration/register.html")
