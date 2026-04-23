@@ -5,15 +5,15 @@ from django.contrib.auth import views as auth_views
 urlpatterns = [
     path('admin/', admin.site.urls),
 
-    # Your app
+    # App routes
     path('', include('dashboard.urls')),
 
-    # Auth system
+    # Auth routes ✅ HERE
     path('accounts/login/', auth_views.LoginView.as_view(
-        template_name='registration/login.html'  # ✅ specify template
+        template_name='registration/login.html'
     ), name='login'),
 
     path('accounts/logout/', auth_views.LogoutView.as_view(
-        next_page='login'  # ✅ redirect after logout
+        next_page='login'
     ), name='logout'),
 ]
