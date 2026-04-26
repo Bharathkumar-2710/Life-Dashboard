@@ -3,11 +3,11 @@ from .models import Task
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from datetime import date, timedelta
-import json
-import csv
-from django.core.serializers.json import DjangoJSONEncoder
+from django.utils import timezone
+import json, csv
+from collections import defaultdict
 
 
 # ---------------- HOME ----------------
@@ -17,54 +17,43 @@ def home(request):
 
     tasks = Task.objects.filter(user=request.user)
 
-    # 🔍 Search
-    query = request.GET.get('q')
-    if query:
-        tasks = tasks.filter(title__icontains=query)
+    # 🔍 Filters
+    if request.GET.get('q'):
+        tasks = tasks.filter(title__icontains=request.GET['q'])
 
-    # 🏷️ Category Filter
-    category_filter = request.GET.get('category')
-    if category_filter:
-        tasks = tasks.filter(category=category_filter)
+    if request.GET.get('category'):
+        tasks = tasks.filter(category=request.GET['category'])
 
-    # 🎯 Priority Filter
-    priority_filter = request.GET.get('priority')
-    if priority_filter:
-        tasks = tasks.filter(priority=priority_filter)
-
-    # 🔄 Sorting
-    sort = request.GET.get('sort')
-    if sort == "due":
-        tasks = tasks.order_by('due_date')
-    elif sort == "priority":
-        tasks = tasks.order_by('priority')
+    if request.GET.get('priority'):
+        tasks = tasks.filter(priority=request.GET['priority'])
 
     # 📊 Stats
     total = tasks.count()
     completed = tasks.filter(completed=True).count()
     pending = tasks.filter(completed=False).count()
-    completion_rate = (completed / total * 100) if total > 0 else 0
+    completion_rate = (completed / total * 100) if total else 0
 
     # 📅 Date logic
     today = date.today()
-    overdue_tasks = tasks.filter(due_date__lt=today, completed=False)
+    overdue = tasks.filter(due_date__lt=today, completed=False)
     today_tasks = tasks.filter(due_date=today, completed=False)
 
-    # 📊 Category Chart
+    # 📊 Category data
     categories = {}
-    category_stats = {}
-
     for task in tasks:
-        cat = task.category
+        categories[task.category] = categories.get(task.category, 0) + 1
 
-        categories[cat] = categories.get(cat, 0) + 1
+    # 📈 REAL weekly data
+    week_days = [today - timedelta(days=i) for i in range(6, -1, -1)]
+    weekly_data = defaultdict(int)
 
-        if cat not in category_stats:
-            category_stats[cat] = {"total": 0, "completed": 0}
+    for task in tasks.filter(completed=True, completed_at__isnull=False):
+        d = task.completed_at.date()
+        if d in week_days:
+            weekly_data[d.strftime("%a")] += 1
 
-        category_stats[cat]["total"] += 1
-        if task.completed:
-            category_stats[cat]["completed"] += 1
+    weekly_labels = [d.strftime("%a") for d in week_days]
+    weekly_values = [weekly_data[label] for label in weekly_labels]
 
     return render(request, 'home.html', {
         'tasks': tasks,
@@ -72,154 +61,77 @@ def home(request):
         'completed': completed,
         'pending': pending,
         'completion_rate': completion_rate,
-        'overdue': overdue_tasks,
+        'overdue': overdue,
         'today_tasks': today_tasks,
-        'category_data': json.dumps(categories, cls=DjangoJSONEncoder),
-        'category_stats': json.dumps(category_stats)
+        'category_data': json.dumps(categories),
+        'weekly_labels': json.dumps(weekly_labels),
+        'weekly_values': json.dumps(weekly_values),
     })
 
 
-# ---------------- ADD TASK ----------------
+# ---------------- TASK ----------------
 @login_required
 def add_task(request):
     if request.method == "POST":
-        title = request.POST.get('title')
-        category = request.POST.get('category')
-        due_date = request.POST.get('due_date')
-        priority = request.POST.get('priority')
-
-        if title:
-            Task.objects.create(
-                title=title,
-                category=category,
-                due_date=due_date,
-                priority=priority,
-                user=request.user
-            )
-            messages.success(request, "Task added successfully")
-
+        Task.objects.create(
+            title=request.POST.get('title'),
+            category=request.POST.get('category'),
+            priority=request.POST.get('priority'),
+            due_date=request.POST.get('due_date'),
+            user=request.user
+        )
     return redirect('home')
 
 
-# ---------------- EDIT TASK ----------------
-@login_required
-def edit_task(request, id):
-    task = get_object_or_404(Task, id=id, user=request.user)
-
-    if request.method == "POST":
-        task.title = request.POST.get('title')
-        task.category = request.POST.get('category')
-        task.due_date = request.POST.get('due_date')
-        task.priority = request.POST.get('priority')
-        task.save()
-
-        messages.success(request, "Task updated successfully")
-        return redirect('home')
-
-    return render(request, 'edit_task.html', {'task': task})
-
-
-# ---------------- DELETE TASK ----------------
 @login_required
 def delete_task(request, id):
-    task = get_object_or_404(Task, id=id, user=request.user)
-    task.delete()
-    messages.warning(request, "Task deleted")
+    get_object_or_404(Task, id=id, user=request.user).delete()
     return redirect('home')
 
 
-# ---------------- TOGGLE COMPLETE ----------------
 @login_required
 def toggle_complete(request, id):
     task = get_object_or_404(Task, id=id, user=request.user)
     task.completed = not task.completed
     task.save()
+    return redirect('home')
 
-    if task.completed:
-        messages.success(request, "Task marked as completed")
-    else:
-        messages.info(request, "Task marked as pending")
+
+# ---------------- TIME TRACKING ----------------
+@login_required
+def start_task(request, id):
+    task = get_object_or_404(Task, id=id, user=request.user)
+    task.start_time = timezone.now()
+    task.save()
+    return redirect('home')
+
+
+@login_required
+def stop_task(request, id):
+    task = get_object_or_404(Task, id=id, user=request.user)
+
+    if task.start_time:
+        duration = (timezone.now() - task.start_time).seconds
+        task.total_time += duration
+        task.start_time = None
+        task.save()
 
     return redirect('home')
 
 
-# ---------------- REMINDERS ----------------
+# ---------------- DRAG SAVE ----------------
 @login_required
-def reminders(request):
-    today = date.today()
+def reorder_tasks(request):
+    if request.method == "POST":
+        order = json.loads(request.body)
 
-    due_today = Task.objects.filter(user=request.user, due_date=today, completed=False)
-    overdue = Task.objects.filter(user=request.user, due_date__lt=today, completed=False)
+        for index, task_id in enumerate(order):
+            Task.objects.filter(id=task_id, user=request.user).update(order=index)
 
-    return render(request, "reminders.html", {
-        "due_today": due_today,
-        "overdue": overdue
-    })
+        return JsonResponse({"status": "ok"})
 
 
-# ---------------- WEEKLY PROGRESS ----------------
-@login_required
-def weekly_progress(request):
-    today = date.today()
-    week_start = today - timedelta(days=7)
-
-    tasks = Task.objects.filter(user=request.user, due_date__gte=week_start)
-
-    total = tasks.count()
-    completed = tasks.filter(completed=True).count()
-
-    return render(request, "weekly.html", {
-        "total": total,
-        "completed": completed
-    })
-
-
-# ---------------- STREAK ----------------
-@login_required
-def streak(request):
-    tasks = Task.objects.filter(user=request.user, completed=True).order_by('-due_date')
-
-    streak_count = 0
-    current_day = date.today()
-
-    for task in tasks:
-        if task.due_date == current_day:
-            streak_count += 1
-            current_day -= timedelta(days=1)
-        else:
-            break
-
-    return render(request, "streak.html", {"streak": streak_count})
-
-
-# ---------------- CALENDAR ----------------
-@login_required
-def calendar_view(request):
-    tasks = Task.objects.filter(user=request.user)
-
-    events = []
-    for task in tasks:
-        if task.due_date:
-            events.append({
-                "title": task.title,
-                "date": task.due_date.strftime("%Y-%m-%d"),
-                "completed": task.completed
-            })
-
-    return render(request, "calendar.html", {
-        "events": json.dumps(events)
-    })
-
-
-# ---------------- COMPLETE ALL ----------------
-@login_required
-def complete_all(request):
-    Task.objects.filter(user=request.user, completed=False).update(completed=True)
-    messages.success(request, "All tasks completed!")
-    return redirect('home')
-
-
-# ---------------- EXPORT CSV ----------------
+# ---------------- EXPORT ----------------
 @login_required
 def export_tasks(request):
     response = HttpResponse(content_type='text/csv')
@@ -228,66 +140,10 @@ def export_tasks(request):
     writer = csv.writer(response)
     writer.writerow(['Title', 'Category', 'Priority', 'Due Date', 'Completed'])
 
-    tasks = Task.objects.filter(user=request.user)
-
-    for task in tasks:
-        writer.writerow([
-            task.title,
-            task.category,
-            task.priority,
-            task.due_date,
-            task.completed
-        ])
+    for task in Task.objects.filter(user=request.user):
+        writer.writerow([task.title, task.category, task.priority, task.due_date, task.completed])
 
     return response
-
-
-# ---------------- IMPORT CSV ----------------
-@login_required
-def import_tasks(request):
-    if request.method == "POST":
-        file = request.FILES["file"]
-        decoded = file.read().decode('utf-8').splitlines()
-        reader = csv.reader(decoded)
-
-        next(reader)
-
-        for row in reader:
-            Task.objects.create(
-                title=row[0],
-                category=row[1],
-                priority=row[2],
-                due_date=row[3],
-                completed=row[4] == "True",
-                user=request.user
-            )
-
-        messages.success(request, "Tasks imported!")
-        return redirect('home')
-
-    return render(request, "import.html")
-
-
-# ---------------- PROFILE ----------------
-@login_required
-def profile(request):
-    tasks = Task.objects.filter(user=request.user)
-
-    return render(request, "profile.html", {
-        "total": tasks.count(),
-        "completed": tasks.filter(completed=True).count(),
-        "pending": tasks.filter(completed=False).count()
-    })
-
-
-# ---------------- SUGGESTION ----------------
-@login_required
-def suggestions(request):
-    task = Task.objects.filter(user=request.user, completed=False).order_by('due_date').first()
-
-    return render(request, "suggestion.html", {
-        "task": task
-    })
 
 
 # ---------------- REGISTER ----------------
@@ -297,11 +153,10 @@ def register(request):
         password = request.POST["password"]
 
         if User.objects.filter(username=username).exists():
-            messages.error(request, "Username already exists")
+            messages.error(request, "Username exists")
             return redirect("register")
 
         User.objects.create_user(username=username, password=password)
-        messages.success(request, "Account created! Login now.")
         return redirect("login")
 
     return render(request, "registration/register.html")

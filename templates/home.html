@@ -2,45 +2,47 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Life Dashboard</title>
+<title>Life Dashboard Pro</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
 <style>
 body {
     font-family: 'Segoe UI';
-    background: #121212;
+    background: #0f172a;
     color: white;
     padding: 20px;
 }
 
-h1 { text-align: center; }
-
-.top-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+/* Light mode */
+.light {
+    background: white;
+    color: black;
 }
 
-.stats {
-    display: flex;
-    justify-content: space-around;
-    background: #222;
+/* Layout */
+.container {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+}
+
+/* Card */
+.card {
+    background: #1e293b;
     padding: 15px;
     border-radius: 10px;
-    margin-top: 20px;
 }
 
-.task-box {
-    margin-top: 25px;
-}
-
+/* Task */
 .task {
-    background: #1e1e2f;
-    padding: 12px;
-    margin-top: 10px;
+    background: #0f172a;
+    padding: 10px;
+    margin-top: 8px;
     border-radius: 8px;
     display: flex;
     justify-content: space-between;
-    align-items: center;
 }
 
 .task.completed {
@@ -48,156 +50,166 @@ h1 { text-align: center; }
     opacity: 0.6;
 }
 
-.task.overdue {
-    border-left: 5px solid red;
-}
-
-.task.today {
-    border-left: 5px solid orange;
-}
-
-input, select {
-    padding: 8px;
-    margin-top: 5px;
-    width: 100%;
-}
-
+/* Button */
 button {
-    padding: 8px;
-    margin-top: 10px;
-    background: #00adb5;
+    padding: 6px 10px;
     border: none;
+    border-radius: 6px;
+    background: #3b82f6;
     color: white;
     cursor: pointer;
 }
 
-.delete { background: red; }
-
-.filters {
+.top {
     display: flex;
-    gap: 10px;
-    margin-top: 15px;
-}
-
-.progress {
-    background: #333;
-    border-radius: 10px;
-    overflow: hidden;
-    margin-top: 10px;
-}
-
-.progress-bar {
-    height: 10px;
-    background: #00adb5;
+    justify-content: space-between;
 }
 </style>
 </head>
 
 <body>
 
-<div class="top-bar">
-    <h1>📊 Life Dashboard</h1>
-
-    <form method="POST" action="{% url 'logout' %}">
-        {% csrf_token %}
-        <button>Logout</button>
-    </form>
+<div class="top">
+    <h2>🚀 Life Dashboard</h2>
+    <button onclick="toggleTheme()">🌗</button>
 </div>
 
-<!-- ✅ Messages -->
-{% if messages %}
-    {% for message in messages %}
-        <p>{{ message }}</p>
+<div class="container">
+
+<!-- LEFT -->
+<div>
+
+<!-- 📊 Stats -->
+<div class="card">
+    Total: {{ total }} |
+    Completed: {{ completed }} |
+    Pending: {{ pending }}
+</div>
+
+<!-- 📈 Weekly Chart -->
+<div class="card">
+    <h3>Weekly Progress</h3>
+    <canvas id="weeklyChart"></canvas>
+</div>
+
+<!-- 📋 Tasks -->
+<div class="card">
+    <h3>Tasks</h3>
+
+    <div id="taskList">
+    {% for task in tasks %}
+        <div class="task {% if task.completed %}completed{% endif %}" data-id="{{ task.id }}">
+            <div>
+                <b>{{ task.title }}</b><br>
+                {{ task.category }} | {{ task.priority }}
+            </div>
+
+            <div>
+                <a href="{% url 'toggle_complete' task.id %}">✔</a>
+                <a href="{% url 'delete_task' task.id %}" style="color:red;">✖</a>
+
+                <!-- ⏱️ Time -->
+                <a href="{% url 'start_task' task.id %}">▶</a>
+                <a href="{% url 'stop_task' task.id %}">⏹</a>
+            </div>
+        </div>
     {% endfor %}
-{% endif %}
-
-<!-- ✅ Stats -->
-<div class="stats">
-    <p>Total: {{ total }}</p>
-    <p>Completed: {{ completed }}</p>
-    <p>Pending: {{ pending }}</p>
-    <p>Progress: {{ completion_rate|floatformat:0 }}%</p>
+    </div>
 </div>
 
-<div class="progress">
-    <div class="progress-bar" style="width: {{ completion_rate }}%"></div>
 </div>
 
-<!-- 🔍 Filters -->
-<form method="GET" class="filters">
-    <input type="text" name="q" placeholder="Search..." value="{{ request.GET.q }}">
+<!-- RIGHT -->
+<div>
 
-    <select name="category">
-        <option value="">All</option>
-        <option>Work</option>
-        <option>Study</option>
-        <option>Personal</option>
-    </select>
-
-    <select name="sort">
-        <option value="">Sort</option>
-        <option value="due">Due Date</option>
-        <option value="priority">Priority</option>
-        <option value="latest">Latest</option>
-    </select>
-
-    <button type="submit">Apply</button>
-</form>
+<!-- 📊 Category Chart -->
+<div class="card">
+    <h3>Category Chart</h3>
+    <canvas id="categoryChart"></canvas>
+</div>
 
 <!-- ➕ Add Task -->
-<div class="task-box">
+<div class="card">
     <h3>Add Task</h3>
 
     <form method="POST" action="{% url 'add_task' %}">
         {% csrf_token %}
-        <input type="text" name="title" placeholder="Task title" required>
-
+        <input type="text" name="title" placeholder="Task" required><br>
         <select name="category">
             <option>Work</option>
             <option>Study</option>
             <option>Personal</option>
-        </select>
+        </select><br>
 
         <select name="priority">
             <option>Low</option>
             <option selected>Medium</option>
             <option>High</option>
-        </select>
+        </select><br>
 
-        <input type="date" name="due_date">
+        <input type="date" name="due_date"><br>
 
-        <button type="submit">Add Task</button>
+        <button>Add</button>
     </form>
 </div>
 
-<!-- 📋 Task List -->
-<div class="task-box">
-    <h3>Your Tasks</h3>
-
-    {% for task in tasks %}
-    <div class="task 
-        {% if task.completed %}completed{% endif %}
-        {% if task in overdue %}overdue{% endif %}
-        {% if task in today_tasks %}today{% endif %}
-    ">
-        <div>
-            <b>{{ task.title }}</b>  
-            ({{ task.category }})  
-            [{{ task.priority }}] <br>
-
-            Due: {{ task.due_date }}
-        </div>
-
-        <div>
-            <a href="{% url 'toggle_complete' task.id %}">✔</a>
-            <a href="{% url 'edit_task' task.id %}">✏</a>
-            <a href="{% url 'delete_task' task.id %}" style="color:red;">✖</a>
-        </div>
-    </div>
-    {% empty %}
-        <p>No tasks yet.</p>
-    {% endfor %}
 </div>
+
+</div>
+
+<script>
+// 🌗 Theme
+function toggleTheme() {
+    document.body.classList.toggle("light");
+}
+
+// 📈 Weekly Chart
+new Chart(document.getElementById('weeklyChart'), {
+    type: 'line',
+    data: {
+        labels: JSON.parse('{{ weekly_labels|escapejs }}'),
+        datasets: [{
+            label: 'Completed',
+            data: JSON.parse('{{ weekly_values|escapejs }}'),
+            borderColor: '#22c55e',
+            tension: 0.4
+        }]
+    }
+});
+
+// 📊 Category Chart
+const catData = JSON.parse('{{ category_data|escapejs }}');
+
+new Chart(document.getElementById('categoryChart'), {
+    type: 'pie',
+    data: {
+        labels: Object.keys(catData),
+        datasets: [{
+            data: Object.values(catData)
+        }]
+    }
+});
+
+// 🧲 Drag & Drop
+new Sortable(document.getElementById('taskList'), {
+    animation: 150,
+    onEnd: function () {
+        let order = [];
+        document.querySelectorAll('.task').forEach(el => {
+            order.push(el.dataset.id);
+        });
+
+        fetch('/reorder/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(order)
+        });
+    }
+});
+</script>
 
 </body>
 </html>
