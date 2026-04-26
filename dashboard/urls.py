@@ -8,10 +8,10 @@ urlpatterns = [
 
     # 📋 Task Management
     path('add/', views.add_task, name='add_task'),
-    path('edit/<int:id>/', views.edit_task, name='edit_task'),
+    # path('edit/<int:id>/', views.edit_task, name='edit_task'),  # TODO: Implement edit_task
     path('delete/<int:id>/', views.delete_task, name='delete_task'),
     path('toggle/<int:id>/', views.toggle_complete, name='toggle_complete'),
-    path('complete-all/', views.complete_all, name='complete_all'),
+    # path('complete-all/', views.complete_all, name='complete_all'),  # TODO: Implement complete_all
 
     # ⏱️ Time Tracking
     path('start/<int:id>/', views.start_task, name='start_task'),
@@ -21,15 +21,15 @@ urlpatterns = [
     path('reorder/', views.reorder_tasks, name='reorder_tasks'),
 
     # 📊 Analytics / Features
-    path('reminders/', views.reminders, name='reminders'),
-    path('weekly/', views.weekly_progress, name='weekly'),
-    path('streak/', views.streak, name='streak'),
-    path('calendar/', views.calendar_view, name='calendar'),
-    path('profile/', views.profile, name='profile'),
-    path('suggestions/', views.suggestions, name='suggestions'),
+    # path('reminders/', views.reminders, name='reminders'),  # TODO: Implement reminders
+    # path('weekly/', views.weekly_progress, name='weekly'),  # TODO: Implement weekly_progress
+    # path('streak/', views.streak, name='streak'),  # TODO: Implement streak
+    # path('calendar/', views.calendar_view, name='calendar'),  # TODO: Implement calendar_view
+    # path('profile/', views.profile, name='profile'),  # TODO: Implement profile
+    # path('suggestions/', views.suggestions, name='suggestions'),  # TODO: Implement suggestions
 
     # 📁 Import / Export
-    path('import/', views.import_tasks, name='import_tasks'),
+    # path('import/', views.import_tasks, name='import_tasks'),  # TODO: Implement import_tasks
     path('export/', views.export_tasks, name='export_tasks'),
 
     # 🔐 Authentication
